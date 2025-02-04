@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INFOSYS Image Analyzer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes bgAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes splash {
+            0% { transform: scale(0.95); opacity: 0.3; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.3; }
+        }
+
+        @keyframes iconFloat {
+            0% { transform: translateY(0) rotate(0); }
+            25% { transform: translateY(-5px) rotate(-5deg); }
+            75% { transform: translateY(5px) rotate(5deg); }
+            100% { transform: translateY(0) rotate(0); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        :root {
+            --primary: #23cca2;
+            --primary-light: #34e3b8;
+            --primary-dark: #1b9c7c;
+            --accent-1: #2dd4bf;
+            --accent-2: #06b6d4;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: #0f172a;
+            color: white;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .background-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .splash {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            animation: splash 10s infinite;
+        }
+
+        .splash-1 {
+            top: 25%;
+            left: 5%;
+            width: 500px;
+            height: 500px;
+            background: var(--primary-dark);
+            opacity: 0.05;
+            animation-delay: -3s;
+        }
+
+
+        .splash-3 {
+            top: 25%;
+            right: 5%;
+            width: 500px;
+            height: 500px;
+            background: var(--primary-dark);
+            opacity: 0.05;
+            animation-delay: -3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--primary-light), var(--primary));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: transform 0.3s ease-out;
+            cursor: zoom-in;
+            display: inline-block;
+        }
+
+        header h1:hover {
+            transform: scale(1.05) translateY(-5px);
+        }
+
+        header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            color: #e2e8f0;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 2rem;
+        }
+
+        .tool-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .tool-card:nth-child(1) { animation-delay: 0.1s; }
+        .tool-card:nth-child(2) { animation-delay: 0.2s; }
+        .tool-card:nth-child(3) { animation-delay: 0.3s; }
+        .tool-card:nth-child(4) { animation-delay: 0.4s; }
+        .tool-card:nth-child(5) { animation-delay: 0.5s; }
+        .tool-card:nth-child(6) { animation-delay: 0.6s; }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-light);
+            box-shadow: 0 10px 30px rgba(35, 204, 162, 0.1);
+        }
+
+        .tool-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            animation: shimmer 3s infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tool-card:hover::after {
+            opacity: 1;
+        }
+
+        .tool-icon {
+            font-size: 3rem;
+            color: var(--primary-light);
+            margin-bottom: 1rem;
+            display: inline-block;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        .tool-card:hover .tool-icon {
+            color: white;
+            transform: scale(1.1) rotate(360deg);
+        }
+
+        .tool-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover .tool-title {
+            color: var(--primary-light);
+        }
+
+        .tool-description {
+            color: #e2e8f0;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .featured-card {
+            grid-column: span 2;
+            display: flex;
+            align-items: center;
+            text-align: left;
+            background: linear-gradient(135deg, rgba(35, 204, 162, 0.15), rgba(27, 156, 124, 0.15));
+            padding: 3rem;
+        }
+
+        .featured-card .tool-icon {
+            font-size: 4rem;
+            margin-right: 2rem;
+            animation: iconFloat 4s ease-in-out infinite;
+        }
+
+        .featured-card .tool-title {
+            font-size: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .featured-card {
+                grid-column: span 1;
+                flex-direction: column;
+                text-align: center;
+                padding: 2rem;
+            }
+            .featured-card .tool-icon {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-effects">
+        <div class="splash splash-1"></div>
+        <div class="splash splash-3"></div>
+    </div>
+    <div class="container">
+        <header>
+            <h1>INFOSYS Image Analyzer</h1>
+            <p>Choose the tool that best fits your needs</p>
+        </header>
+        <div class="tools-grid">
+            <a href="/image-analyzer" class="tool-card featured-card">
+                <i class="fas fa-wand-magic-sparkles tool-icon"></i>
+                <div>
+                    <h2 class="tool-title">AI Image Analyzer</h2>
+                    <p class="tool-description">Our most powerful tool for image analysis. Upload images or provide URLs for instant AI-powered analysis, including alt text generation and sentiment analysis.</p>
+                </div>
+            </a>
+            <a href="/seo" class="tool-card">
+                <i class="fas fa-search tool-icon"></i>
+                <h2 class="tool-title">SEO Description Generator</h2>
+                <p class="tool-description">Create SEO-optimized descriptions for your product images.</p>
+            </a>
+            <a href="/medical-image-analysis" class="tool-card">
+                <i class="fas fa-stethoscope tool-icon"></i>
+                <h2 class="tool-title">Medical Image Analysis</h2>
+                <p class="tool-description">Analyze and interpret medical images for better diagnosis.</p>
+            </a>
+            <a href="/social-media" class="tool-card">
+                <i class="fas fa-hashtag tool-icon"></i>
+                <h2 class="tool-title">Social Media Tool</h2>
+                <p class="tool-description">Generate engaging captions and alt text optimized for social media platforms.</p>
+            </a>
+            <a href="/general" class="tool-card">
+                <i class="fas fa-tools tool-icon"></i>
+                <h2 class="tool-title">General Analysis</h2>
+                <p class="tool-description">Complete image analysis with alt text, context, and enhanced descriptions.</p>
+            </a>
+            <a href="/advanced-analysis" class="tool-card">
+                <i class="fas fa-microscope tool-icon"></i>
+                <h2 class="tool-title">Advanced Analysis</h2>
+                <p class="tool-description">In-depth image analysis with color detection, enhanced AI descriptions, and detailed sentiment analysis.</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
