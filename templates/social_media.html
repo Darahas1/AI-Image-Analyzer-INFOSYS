@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}INFOSYS Image Analyzer - Social Media Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header animate__animated animate__fadeIn animate__duration-800ms text-center">
+    <h1>Social Media Content Generator</h1>
+    <p class="subtitle">Transform your images into engaging social media content with AI-powered analysis</p>
+</div>
+
+<div class="card upload-section animate__animated animate__fadeInUp animate__delay-200ms">
+    <div class="upload-box" id="uploadBox">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p class="upload-text">Drag and drop your image here or click to browse</p>
+        <small class="text-muted d-block mt-2">Supported formats: PNG, JPEG, GIF</small>
+        <input type="file" accept="image/*" style="display: none;" id="fileInput">
+    </div>
+    
+    <div class="preview-container hidden" id="previewContainer">
+        <img id="previewImage" class="preview-image">
+        <div class="upload-success">
+            <i class="fas fa-check-circle"></i>
+            <span>Image uploaded successfully!</span>
+        </div>
+        <button class="btn btn-primary generate-btn" id="generateBtn">
+            <i class="fas fa-magic"></i>
+            Generate Content
+        </button>
+        <button class="remove-btn" onclick="removeImage()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Loading Spinner - Hidden by default -->
+    <div id="loading" class="loading-container hidden animate__animated animate__fadeIn">
+        <div class="spinner"></div>
+        <p>Generating social media content... This may take a few moments.</p>
+    </div>
+
+    <!-- Error Alert - Hidden by default -->
+    <div id="error-alert" class="alert alert-danger hidden" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span id="error-message"></span>
+    </div>
+
+    <!-- Results container - initially hidden -->
+    <div id="resultsContainer" class="results-container hidden">
+        <!-- Alt Text Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-eye"></i> Alt Text</h3>
+                <p class="section-description">AI-generated description of the image</p>
+            </div>
+            <div class="content-box">
+                <p id="altText" class="result-text"></p>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('altText')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-secondary" onclick="speakText('altText')">
+                        <i class="fas fa-volume-up"></i> Listen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Caption Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-comment"></i> Caption</h3>
+                <p class="section-description">Engaging social media caption</p>
+            </div>
+            <div class="content-box">
+                <p id="caption" class="result-text"></p>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('caption')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-secondary" onclick="speakText('caption')">
+                        <i class="fas fa-volume-up"></i> Listen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hashtags Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-hashtag"></i> Hashtags</h3>
+                <p class="section-description">Relevant hashtags for your post</p>
+            </div>
+            <div class="content-box">
+                <div id="hashtags" class="hashtag-container"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('hashtags')">
+                        <i class="fas fa-copy"></i> Copy All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.upload-section {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.upload-box {
+    border: 2px dashed var(--primary-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin: var(--spacing-lg);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-box:hover {
+    background-color: var(--background-hover);
+}
+
+.upload-box i {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.upload-text {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.preview-container {
+    position: relative;
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-lg);
+    object-fit: contain;
+}
+
+.upload-success {
+    margin: var(--spacing-md) 0;
+    color: var(--success-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.upload-success i {
+    font-size: 1.2em;
+}
+
+.generate-btn {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.generate-btn i {
+    font-size: 1.1em;
+}
+
+.generate-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.remove-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--error-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    transform: scale(1.1);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.hashtag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: var(--spacing-md);
+}
+
+.hashtag {
+    background-color: var(--background-hover);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9em;
+}
+
+.hashtag:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Loading Container Styles */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    margin-bottom: var(--spacing-md);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Smooth animation classes */
+.animate__duration-800ms {
+    animation-duration: 800ms !important;
+}
+
+.animate__delay-200ms {
+    animation-delay: 200ms !important;
+}
+
+/* Improved transitions */
+.results-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-section {
+    background: var(--surface-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.section-header {
+    margin-bottom: var(--spacing-md);
+}
+
+.section-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
+}
+
+.section-description {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.content-box {
+    background: var(--background-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+}
+
+.result-text {
+    margin-bottom: var(--spacing-md);
+    line-height: 1.6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingContainer = document.getElementById('loading');
+    const errorAlert = document.getElementById('error-alert');
+    const generateBtn = document.getElementById('generateBtn');
+
+    // Hide loading and error on initial load
+    loadingContainer.classList.add('hidden');
+    errorAlert.classList.add('hidden');
+
+    // Upload box click handler
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    // Generate button click handler
+    generateBtn.addEventListener('click', async () => {
+        try {
+            loadingContainer.classList.remove('hidden');
+            generateBtn.disabled = true;
+            resultsContainer.classList.add('hidden');
+            errorAlert.classList.add('hidden');
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            const response = await fetch('/social-media', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to analyze image');
+            }
+
+            // Update UI with response data
+            document.getElementById('altText').textContent = data.data.alt_text || '';
+            document.getElementById('caption').textContent = data.data.caption || '';
+            
+            const hashtagContainer = document.getElementById('hashtags');
+            if (data.data.hashtags && Array.isArray(data.data.hashtags)) {
+                hashtagContainer.innerHTML = data.data.hashtags
+                    .map(tag => `<span class="hashtag">${tag}</span>`)
+                    .join('');
+            }
+
+            resultsContainer.classList.remove('hidden');
+        } catch (error) {
+            console.error('Analysis error:', error);
+            showError(error.message || 'Failed to analyze image. Please try again.');
+        } finally {
+            loadingContainer.classList.add('hidden');
+            generateBtn.disabled = false;
+        }
+    });
+
+    // Drag and drop handlers
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+        uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadBox.classList.remove('dragover');
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleFile(file);
+        } else {
+            showError('Please upload a valid image file');
+        }
+    });
+
+    // File input change handler
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file);
+    });
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+            uploadBox.classList.add('hidden');
+            errorAlert.classList.add('hidden');
+            generateBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function showError(message) {
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.textContent = message;
+        errorAlert.classList.remove('hidden');
+        
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            errorAlert.classList.add('hidden');
+        }, 5000);
+    }
+
+    window.removeImage = function() {
+        previewContainer.classList.add('hidden');
+        uploadBox.classList.remove('hidden');
+        fileInput.value = '';
+        resultsContainer.classList.add('hidden');
+        errorAlert.classList.add('hidden');
+    };
+
+    window.copyToClipboard = function(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!', 'success');
+        }).catch(() => {
+            showToast('Failed to copy text', 'error');
+        });
+    };
+
+    // Speech functionality
+    window.speakText = async function(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        
+        try {
+            // Using browser's built-in speech synthesis
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9; // Slightly slower for better clarity
+            utterance.pitch = 1;
+            
+            // Show speaking indicator
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Speaking...';
+            button.disabled = true;
+            
+            utterance.onend = () => {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            };
+            
+            speechSynthesis.speak(utterance);
+        } catch (error) {
+            console.error('Speech synthesis error:', error);
+            showToast('Speech synthesis failed', 'error');
+        }
+    };
+});
+</script>
+{% endblock %} 

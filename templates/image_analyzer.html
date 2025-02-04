@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}INFOSYS Image Analyzer - Image Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header animate__animated animate__fadeIn animate__duration-800ms">
+    <h1>Image Analysis</h1>
+    <p class="subtitle">Analyze images using AI - Upload or provide a link</p>
+</div>
+
+<div class="card upload-section animate__animated animate__fadeInUp animate__delay-200ms">
+    <div class="input-container">
+        <div id="upload-section" class="tab-content active">
+            <div class="upload-box" id="uploadBox">
+                <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                <p class="upload-text">Drag and drop your image here or click to browse</p>
+                <p class="upload-subtext">Supports PNG, JPG, JPEG files</p>
+                <input type="file" accept="image/*" style="display: none;" id="fileInput">
+            </div>
+            
+            <div class="preview-container hidden" id="previewContainer">
+                <div class="preview-wrapper">
+                    <img id="previewImage" class="preview-image">
+                    <button class="remove-btn" onclick="removeImage()" title="Remove image">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <button id="analyzeBtn" class="analyze-btn hidden" onclick="analyzeImage()">
+                    <i class="fas fa-magic"></i> Analyze Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results container - initially hidden -->
+    <div id="resultsContainer" class="results-container hidden animate__animated animate__fadeIn">
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-eye"></i> Alt Text</h3>
+                <p class="section-description">AI-generated description of the image</p>
+            </div>
+            <div class="content-box">
+                <p id="altText" class="result-text"></p>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('altText')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-align-left"></i> Enhanced Description</h3>
+                <p class="section-description">AI-enhanced detailed description</p>
+            </div>
+            <div class="content-box">
+                <p id="context" class="result-text"></p>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('context')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Updated Loading Spinner -->
+<div id="loading" class="loading-container hidden animate__animated animate__fadeIn">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <p>Analyzing image... This may take a few moments.</p>
+    </div>
+</div>
+
+<!-- Error Alert - Hidden by default -->
+<div id="error-alert" class="alert alert-danger hidden" role="alert">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    <span id="error-message"></span>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Base styles */
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.upload-section {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--surface-color);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Upload box styles */
+.upload-box {
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--background-color);
+}
+
+.upload-box:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(33, 150, 243, 0.05);
+}
+
+.upload-box i {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Updated Preview Container Styles */
+.preview-container {
+    position: relative;
+    margin: 2rem auto;
+    text-align: center;
+    max-width: 600px;
+    padding: 10px; /* Add padding to account for the button */
+}
+
+.preview-wrapper {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.preview-image {
+    display: block;
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Updated Remove Button Styles */
+.remove-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ff3b30;
+    color: white;
+    border: 2px solid white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+    z-index: 10;
+    padding: 0;
+}
+
+.remove-btn:hover {
+    background: #ff453a;
+    transform: scale(1.1);
+}
+
+.remove-btn i {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* Analyze Button Styles */
+.analyze-btn {
+    width: 100%;
+    max-width: 300px;
+    margin: 1.5rem auto 0;
+    padding: 1rem;
+    font-size: 1.1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.analyze-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.analyze-btn i {
+    font-size: 1.2rem;
+}
+
+.btn-secondary {
+    padding: 0.5rem 1rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--background-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Updated Loading Container Styles */
+.loading-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.loading-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    animation: spin 1s linear infinite;
+}
+
+.loading-container p {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    margin: 1rem 0 0;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+.animate__duration-800ms {
+    animation-duration: 800ms !important;
+}
+
+.animate__delay-200ms {
+    animation-delay: 200ms !important;
+}
+
+/* Success message styles */
+.upload-success {
+    color: var(--success-color);
+    margin-top: var(--spacing-sm);
+    font-size: 0.9em;
+}
+
+/* Updated Result Section Styles */
+.result-section {
+    margin-bottom: 2rem;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+    margin-bottom: 1rem;
+}
+
+.section-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.section-description {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.content-box {
+    background: var(--background-color);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* Updated Result Text Styles */
+.result-text {
+    margin: 0 0 1rem 0;
+    line-height: 1.6;
+    color: var(--text-primary);
+    text-align: justify;  /* Add text justification */
+    hyphens: auto;       /* Enable hyphenation for better justification */
+    word-break: break-word; /* Prevent overflow */
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+/* Content Box Styles - More specific selectors */
+.results-container .result-section .content-box {
+    background: var(--background-color);
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* Result Text Styles - More specific and important rules */
+.results-container .result-section .content-box .result-text {
+    margin: 0 0 1rem 0;
+    line-height: 1.8 !important;
+    color: var(--text-primary);
+    text-align: justify !important;
+    hyphens: auto;
+    word-break: break-word;
+    font-size: 1rem;
+    padding: 0.5rem 0;
+}
+
+/* Enhanced Description specific styles */
+#context.result-text {
+    text-align: justify !important;
+    text-justify: inter-word !important;
+    white-space: normal !important;
+}
+
+/* Action Buttons Container */
+.results-container .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingContainer = document.getElementById('loading');
+    const errorAlert = document.getElementById('error-alert');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+
+    // Hide loading and error on initial load
+    loadingContainer.classList.add('hidden');
+    errorAlert.classList.add('hidden');
+    resultsContainer.classList.add('hidden');
+
+    // Upload box click handler
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    // File input change handler
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file);
+    });
+
+    // Drag and drop handlers
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+        uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadBox.classList.remove('dragover');
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleFile(file);
+        } else {
+            showError('Please upload a valid image file');
+        }
+    });
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+            uploadBox.classList.add('hidden');
+            errorAlert.classList.add('hidden');
+            analyzeBtn.classList.remove('hidden');
+            resultsContainer.classList.add('hidden'); // Hide any previous results
+        };
+        reader.readAsDataURL(file);
+    }
+
+    window.removeImage = function() {
+        previewContainer.classList.add('hidden');
+        uploadBox.classList.remove('hidden');
+        fileInput.value = '';
+        resultsContainer.classList.add('hidden');
+        errorAlert.classList.add('hidden');
+        analyzeBtn.classList.add('hidden');
+    };
+
+    window.analyzeImage = async function() {
+        if (!fileInput.files[0]) {
+            showError('Please select an image first');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', fileInput.files[0]);
+
+        try {
+            // Show loading state
+            loadingContainer.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+
+            const response = await fetch('/image-analyzer', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to analyze image');
+            }
+
+            // Update results
+            document.getElementById('altText').textContent = data.data.alt_text || 'No alt text generated';
+            document.getElementById('context').textContent = data.data.context || 'No context generated';
+
+            // Show results container
+            resultsContainer.classList.remove('hidden');
+            
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+
+            // Show success toast
+            showToast('Image analysis completed successfully!', 'success');
+
+        } catch (error) {
+            showError(error.message);
+            showToast('Failed to analyze image', 'error');
+        } finally {
+            loadingContainer.classList.add('hidden');
+        }
+    };
+
+    function showError(message) {
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.textContent = message;
+        errorAlert.classList.remove('hidden');
+    }
+
+    window.copyToClipboard = function(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent;
+        
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showToast('Copied to clipboard!', 'success');
+            })
+            .catch(() => {
+                showToast('Failed to copy text', 'error');
+            });
+    };
+
+    function showToast(message, type = 'success') {
+        // Remove any existing toasts
+        const existingToasts = document.querySelectorAll('.toast');
+        existingToasts.forEach(toast => toast.remove());
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type} animate__animated animate__fadeIn`;
+        toast.innerHTML = `
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.remove('animate__fadeIn');
+            toast.classList.add('animate__fadeOut');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+});
+</script>
+
+<style>
+/* Toast notification styles */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 1000;
+}
+
+.toast-success {
+    border-left: 4px solid var(--success-color);
+}
+
+.toast-error {
+    border-left: 4px solid var(--error-color);
+}
+
+.toast i {
+    font-size: 1.2rem;
+}
+
+.toast-success i {
+    color: var(--success-color);
+}
+
+.toast-error i {
+    color: var(--error-color);
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}INFOSYS Image Analyzer - General Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header animate__animated animate__fadeIn animate__duration-800ms text-center">
+    <h1 style="text-align: center;">General Image Analysis</h1>
+    <p class="subtitle" style="text-align: center;">Transform your images into detailed descriptions with AI-powered analysis</p>
+</div>
+
+<div class="card upload-section animate__animated animate__fadeInUp animate__delay-200ms">
+    <div class="upload-box" id="uploadBox">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p class="upload-text">Drag and drop your image here or click to browse</p>
+        <small class="text-muted d-block mt-2">Supported formats: PNG, JPEG, GIF</small>
+        <input type="file" accept="image/*" style="display: none;" id="fileInput">
+    </div>
+    
+    <div class="preview-container hidden" id="previewContainer">
+        <img id="previewImage" class="preview-image">
+        <div class="upload-success">
+            <i class="fas fa-check-circle"></i>
+            <span>Image uploaded successfully!</span>
+        </div>
+        <button class="btn btn-primary generate-btn" id="generateBtn">
+            <i class="fas fa-magic"></i>
+            Generate Analysis
+        </button>
+        <button class="remove-btn" onclick="removeImage()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-container hidden">
+        <div class="spinner"></div>
+        <p>Analyzing image... This may take a few moments.</p>
+    </div>
+
+    <!-- Results container -->
+    <div id="resultsContainer" class="results-container hidden">
+        <!-- Description Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-align-left"></i> Detailed Description</h3>
+                <p class="section-description">AI-generated comprehensive description</p>
+            </div>
+            <div class="content-box">
+                <div id="description" class="result-text description-text"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('description')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-secondary" onclick="speakText('description')">
+                        <i class="fas fa-volume-up"></i> Listen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Objects Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-eye"></i> Objects Detected</h3>
+                <p class="section-description">Items and objects identified in the image</p>
+            </div>
+            <div class="content-box">
+                <div id="objectsContainer" class="tags-container"></div>
+            </div>
+        </div>
+
+        <!-- Colors Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-palette"></i> Color Analysis</h3>
+                <p class="section-description">Dominant colors in the image</p>
+            </div>
+            <div class="content-box">
+                <div id="colorsContainer" class="colors-container">
+                    <!-- Colors will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const generateBtn = document.getElementById('generateBtn');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingContainer = document.getElementById('loading');
+
+    // Upload box click handler
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    // File input change handler
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file);
+    });
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+            uploadBox.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Generate button click handler
+    generateBtn.addEventListener('click', async () => {
+        try {
+            if (!fileInput.files || !fileInput.files[0]) {
+                throw new Error('Please select an image first');
+            }
+
+            loadingContainer.classList.remove('hidden');
+            generateBtn.disabled = true;
+            resultsContainer.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            const response = await fetch('/api/analyze/general', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to analyze image');
+            }
+
+            const data = await response.json();
+
+            // Display results
+            displayResults(data);
+            resultsContainer.classList.remove('hidden');
+
+        } catch (error) {
+            console.error('Analysis error:', error);
+            showError(error.message);
+        } finally {
+            loadingContainer.classList.add('hidden');
+            generateBtn.disabled = false;
+        }
+    });
+
+    async function displayResults(data) {
+        // Update description
+        const descriptionEl = document.getElementById('description');
+        if (descriptionEl && data.description) {
+            descriptionEl.textContent = data.description;
+        }
+
+        // Update objects
+        const objectsContainer = document.getElementById('objectsContainer');
+        if (objectsContainer && data.objects && Array.isArray(data.objects)) {
+            objectsContainer.innerHTML = data.objects
+                .map(obj => `<span class="tag">${obj}</span>`)
+                .join(' ');
+        }
+
+        // Update colors
+        const colorsContainer = document.getElementById('colorsContainer');
+        if (colorsContainer && data.colors && Array.isArray(data.colors)) {
+            colorsContainer.innerHTML = data.colors
+                .map(color => `
+                    <div class="color-box" 
+                         style="background-color: ${color}"
+                         data-color="${color}"
+                         title="${color}">
+                    </div>
+                `)
+                .join('');
+        }
+
+        // Show results container
+        resultsContainer.classList.remove('hidden');
+    }
+
+    window.removeImage = function() {
+        previewContainer.classList.add('hidden');
+        uploadBox.classList.remove('hidden');
+        fileInput.value = '';
+        resultsContainer.classList.add('hidden');
+    };
+
+    // Text-to-speech functionality
+    window.speakText = function(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        const utterance = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(utterance);
+    };
+
+    function showError(message) {
+        // Create or update error alert
+        let errorAlert = document.getElementById('error-alert');
+        if (!errorAlert) {
+            errorAlert = document.createElement('div');
+            errorAlert.id = 'error-alert';
+            errorAlert.className = 'alert alert-danger mt-3';
+            document.querySelector('.upload-section').appendChild(errorAlert);
+        }
+        errorAlert.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+        errorAlert.classList.remove('hidden');
+        
+        // Hide error after 5 seconds
+        setTimeout(() => {
+            errorAlert.classList.add('hidden');
+        }, 5000);
+    }
+
+    // Add color copying functionality
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('color-box')) {
+            const color = e.target.getAttribute('data-color');
+            navigator.clipboard.writeText(color).then(() => {
+                showToast('Color code copied!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy color code', 'error');
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.upload-section {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.upload-box {
+    border: 2px dashed var(--primary-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin: var(--spacing-lg);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-box:hover {
+    background-color: var(--background-hover);
+}
+
+.upload-box i {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.upload-text {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.preview-container {
+    position: relative;
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-lg);
+    object-fit: contain;
+}
+
+.upload-success {
+    margin: var(--spacing-md) 0;
+    color: var(--success-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.upload-success i {
+    font-size: 1.2em;
+}
+
+.generate-btn {
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.generate-btn i {
+    font-size: 1.1em;
+}
+
+.generate-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.remove-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--error-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Loading Container Styles */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    margin-bottom: var(--spacing-md);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Results Container Styles */
+.results-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-section {
+    background: var(--surface-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.section-header {
+    margin-bottom: var(--spacing-md);
+}
+
+.section-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
+}
+
+.section-description {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.content-box {
+    background: var(--background-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.result-text {
+    margin-bottom: var(--spacing-md);
+    line-height: 1.6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Animation Classes */
+.animate__duration-800ms {
+    animation-duration: 800ms !important;
+}
+
+.animate__delay-200ms {
+    animation-delay: 200ms !important;
+}
+
+/* Color Analysis Styles */
+.colors-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.color-box {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.color-box:hover {
+    transform: scale(1.1);
+}
+
+.color-box::after {
+    content: attr(data-color);
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.description-text {
+    font-size: 1.1em;
+    line-height: 1.8;
+    color: var(--text-primary);
+    padding: var(--spacing-md);
+    background-color: var(--surface-color);
+    border-radius: var(--radius-md);
+    text-align: left;
+    margin-bottom: var(--spacing-lg);
+}
+
+.description-text::first-letter {
+    font-size: 1.3em;
+    font-weight: 500;
+}
+</style>
+{% endblock %} 

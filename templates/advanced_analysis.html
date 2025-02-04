@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+
+{% block title %}INFOSYS Image Analyzer - Advanced Analysis{% endblock %}
+
+{% block content %}
+<div class="page-header animate__animated animate__fadeIn animate__duration-800ms text-center">
+    <h1>Advanced Image Analysis</h1>
+    <p class="subtitle">AI-powered image analysis with color detection and enhanced descriptions</p>
+</div>
+
+<div class="card upload-section animate__animated animate__fadeInUp animate__delay-200ms">
+    <div class="upload-box" id="uploadBox">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p class="upload-text">Drag and drop your image here or click to browse</p>
+        <small class="text-muted d-block mt-2">Supported formats: PNG, JPEG, JPG</small>
+        <input type="file" accept="image/*" style="display: none;" id="fileInput">
+    </div>
+    
+    <div class="preview-container hidden" id="previewContainer">
+        <button class="remove-btn" onclick="removeImage()">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="previewImage" class="preview-image">
+        <div class="upload-success">
+            <i class="fas fa-check-circle"></i>
+            <span>Image uploaded successfully!</span>
+        </div>
+        <button class="btn btn-primary generate-btn" id="generateBtn">
+            <i class="fas fa-magic"></i>
+            Generate Analysis
+        </button>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-container hidden">
+        <div class="spinner"></div>
+        <p>Performing advanced analysis... This may take a few moments.</p>
+    </div>
+
+    <!-- Results container -->
+    <div id="resultsContainer" class="results-container hidden">
+        <!-- Enhanced Description Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-align-left"></i> Enhanced Description</h3>
+                <p class="section-description">AI-enhanced detailed description</p>
+            </div>
+            <div class="content-box">
+                <div id="enhancedDescription" class="analysis-content">
+                    <!-- Content will be dynamically inserted here -->
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="copyToClipboard('enhancedDescription')">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-secondary" onclick="speakText('enhancedDescription')">
+                        <i class="fas fa-volume-up"></i> Listen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Analysis Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-palette"></i> Color Analysis</h3>
+                <p class="section-description">Color distribution and dominant colors</p>
+            </div>
+            <div class="content-box">
+                <div class="color-analysis-grid">
+                    <div class="color-chart">
+                        <h4>Color Distribution</h4>
+                        <img id="colorHistogram" class="analysis-chart" alt="Color distribution histogram">
+                    </div>
+                    <div class="color-chart">
+                        <h4>Dominant Colors</h4>
+                        <img id="colorPie" class="analysis-chart" alt="Dominant colors pie chart">
+                    </div>
+                </div>
+                <div id="dominantColors" class="colors-container"></div>
+            </div>
+        </div>
+
+        <!-- Sentiment Analysis Section -->
+        <div class="result-section">
+            <div class="section-header">
+                <h3><i class="fas fa-heart"></i> Sentiment Analysis</h3>
+                <p class="section-description">Emotional tone analysis</p>
+            </div>
+            <div class="content-box">
+                <div class="sentiment-container">
+                    <div class="sentiment-score">
+                        <div class="progress">
+                            <div id="sentimentBar" class="progress-bar" role="progressbar"></div>
+                        </div>
+                        <p id="sentimentLabel" class="mt-2"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+/* Base Styles */
+.page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.upload-section {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    background: var(--surface-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+}
+
+/* Upload Box Styles */
+.upload-box {
+    border: 2px dashed var(--primary-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--background-color);
+}
+
+.upload-box:hover {
+    border-color: var(--primary-color);
+    background: var(--background-hover);
+}
+
+.upload-box i {
+    color: var(--primary-color);
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.upload-text {
+    color: var(--text-secondary);
+    margin: var(--spacing-sm) 0;
+}
+
+/* Preview Container Styles */
+.preview-container {
+    position: relative;
+    text-align: center;
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-lg);
+    object-fit: contain;
+}
+
+/* Updated Remove Button Styles */
+.remove-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--error-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 0;
+}
+
+.remove-btn:hover {
+    transform: scale(1.1);
+    background: var(--error-color-dark);
+}
+
+.remove-btn i {
+    font-size: 14px;
+}
+
+/* Generate Button Styles */
+.generate-btn {
+    margin: var(--spacing-md) auto;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.generate-btn i {
+    font-size: 1.1em;
+}
+
+.upload-success {
+    margin: var(--spacing-md) 0;
+    color: var(--success-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+/* Loading Container Styles */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    text-align: center;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    margin-bottom: var(--spacing-md);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Results Styles */
+.result-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--primary-color);
+}
+
+.content-box {
+    padding: var(--spacing-lg);
+}
+
+/* Color Analysis Styles */
+.color-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.color-chart {
+    text-align: center;
+}
+
+.color-chart h4 {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+}
+
+.analysis-chart {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.colors-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    margin-top: var(--spacing-lg);
+}
+
+.color-box {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.color-box::after {
+    content: attr(data-percentage);
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+/* Sentiment Analysis Styles */
+.sentiment-container {
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.sentiment-score {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.progress {
+    height: 20px;
+    background-color: var(--background-hover);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    margin-bottom: var(--spacing-sm);
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+/* Animation Classes */
+.animate__duration-800ms {
+    animation-duration: 800ms !important;
+}
+
+.animate__delay-200ms {
+    animation-delay: 200ms !important;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+/* Analysis Content Styling */
+.analysis-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+    text-align: left;
+    padding: var(--spacing-md);
+    background: var(--background-color);
+    border-radius: var(--radius-md);
+}
+
+.analysis-content p {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Numbered sections styling */
+.analysis-section {
+    margin-bottom: var(--spacing-lg);
+    padding-left: var(--spacing-md);
+}
+
+.analysis-section-title {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
+}
+
+.analysis-section-content {
+    margin-left: var(--spacing-md);
+}
+
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    justify-content: flex-end;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Add this function to format the description
+function formatDescription(text) {
+    // Split the text by numbered sections
+    const sections = text.split(/(?=\d+\.\s)/).filter(section => section.trim());
+    
+    return sections.map(section => {
+        const [title, ...content] = section.split(':');
+        if (content.length === 0) return section; // Return as-is if no colon found
+        
+        return `
+            <div class="analysis-section">
+                <div class="analysis-section-title">${title.trim()}:</div>
+                <div class="analysis-section-content">
+                    ${content.join(':').trim()}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingContainer = document.getElementById('loading');
+    const generateBtn = document.getElementById('generateBtn');
+
+    // Hide loading and results on initial load
+    loadingContainer.classList.add('hidden');
+    resultsContainer.classList.add('hidden');
+
+    // Single click handler for upload box
+    uploadBox.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // File input change handler
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file);
+    });
+
+    // Drag and drop handlers
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadBox.classList.remove('dragover');
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handleFile(file);
+        }
+    });
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            previewImage.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+            uploadBox.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Generate button click handler
+    generateBtn.addEventListener('click', async () => {
+        try {
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            loadingContainer.classList.remove('hidden');
+            generateBtn.disabled = true;
+            resultsContainer.classList.add('hidden');
+
+            const response = await fetch('/advanced-analysis', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+
+            // Update UI with results
+            const enhancedDescriptionElement = document.getElementById('enhancedDescription');
+            enhancedDescriptionElement.innerHTML = formatDescription(data.data.description);
+
+            // Update color analysis
+            document.getElementById('colorHistogram').src = `data:image/png;base64,${data.data.color_analysis.histogram}`;
+            document.getElementById('colorPie').src = `data:image/png;base64,${data.data.color_analysis.pie_chart}`;
+
+            // Display dominant colors
+            const dominantColorsContainer = document.getElementById('dominantColors');
+            dominantColorsContainer.innerHTML = data.data.color_analysis.dominant_colors
+                .map((color, index) => `
+                    <div class="color-box" 
+                         style="background-color: rgb(${color.join(',')})"
+                         data-percentage="${data.data.color_analysis.color_percentages[index].toFixed(1)}%">
+                    </div>
+                `).join('');
+
+            // Update sentiment analysis
+            const sentimentBar = document.getElementById('sentimentBar');
+            const sentimentLabel = document.getElementById('sentimentLabel');
+            const score = data.data.sentiment.score * 100;
+            
+            sentimentBar.style.width = `${score}%`;
+            sentimentLabel.textContent = `${data.data.sentiment.label} (${score.toFixed(1)}% confidence)`;
+
+            resultsContainer.classList.remove('hidden');
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error processing image: ' + error.message);
+        } finally {
+            loadingContainer.classList.add('hidden');
+            generateBtn.disabled = false;
+        }
+    });
+
+    // Updated removeImage function
+    window.removeImage = function() {
+        previewContainer.classList.add('hidden');
+        uploadBox.classList.remove('hidden');
+        fileInput.value = '';
+        resultsContainer.classList.add('hidden');
+        loadingContainer.classList.add('hidden');
+        // Reset the preview image src
+        previewImage.src = '';
+    };
+
+    // Copy to clipboard handler
+    window.copyToClipboard = function(elementId) {
+        const element = document.getElementById(elementId);
+        const text = element.textContent.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }).catch(() => {
+            alert('Failed to copy text');
+        });
+    };
+
+    // Text-to-speech handler
+    window.speakText = function(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+    };
+});
+</script>
+{% endblock %} 
