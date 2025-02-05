@@ -216,25 +216,15 @@ def analyze_general():
         file.save(filepath)
         
         try:
-            # Process the image
+            # Process the image using the new general analysis method
             image = Image.open(filepath)
-            result = image_processor.generate_alt_text(image)
-            
-            # Generate context
-            context_result = generate_context(result['alt_text'])
-            if not context_result['success']:
-                raise ValueError(context_result['error'])
-            
-            # Generate enhanced description
-            enhanced_result = enhance_context(context_result['data']['context'])
-            if not enhanced_result['success']:
-                raise ValueError(enhanced_result['error'])
+            result = image_processor.generate_alt_text_general(image)
             
             # Return formatted response matching frontend expectations
             return jsonify({
-                'description': enhanced_result['data']['enhanced_context'],
-                'objects': result['alt_text'].split()[:2],  # Simple object detection from alt text
-                'colors': result['colors']  # Now using actual color analysis
+                'description': result['description'],
+                'objects': result['objects'],
+                'colors': result['colors']
             })
             
         except Exception as e:
