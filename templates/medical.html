@@ -76,8 +76,8 @@
                     <h3><i class="fas fa-search"></i> Key Findings</h3>
                     <p class="section-description">Primary observations from the analysis</p>
                 </div>
-                <div class="content-box">
-                    <p id="findings" class="result-text"></p>
+                <div class="content-box findings-box">
+                    <div id="findings" class="result-text structured-text"></div>
                     <div class="action-buttons">
                         <button class="btn btn-secondary" onclick="copyToClipboard('findings')">
                             <i class="fas fa-copy"></i> Copy
@@ -108,8 +108,8 @@
                     <h3><i class="fas fa-notes-medical"></i> Recommendations</h3>
                     <p class="section-description">Suggested next steps and considerations</p>
                 </div>
-                <div class="content-box">
-                    <p id="recommendations" class="result-text"></p>
+                <div class="content-box recommendation-box">
+                    <div id="recommendations" class="result-text recommendation-text"></div>
                     <div class="action-buttons">
                         <button class="btn btn-secondary" onclick="copyToClipboard('recommendations')">
                             <i class="fas fa-copy"></i> Copy
@@ -121,8 +121,8 @@
             <!-- Confidence Score Section -->
             <div class="result-section">
                 <div class="section-header">
-                    <h3><i class="fas fa-chart-line"></i> Analysis Confidence</h3>
-                    <p class="section-description">AI model confidence level in the analysis</p>
+                    <h3><i class="fas fa-chart-line"></i> Analysis Severity</h3>
+                    <p class="section-description">AI model severity level according to the analysis</p>
                 </div>
                 <div class="content-box">
                     <div class="progress" style="height: 25px;">
@@ -436,6 +436,124 @@ body {
     margin-bottom: var(--spacing-md);
     animation: spin 1s linear infinite;
 }
+
+/* Enhanced Text Formatting */
+.structured-text {
+    font-size: 1.1em;
+    line-height: 1.8;
+    color: var(--text-primary);
+    padding: 1.5rem;
+}
+
+.findings-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Add spacing between paragraphs */
+.structured-text p {
+    margin-bottom: 1.2rem;
+}
+
+/* Highlight important sections */
+.structured-text strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* List styling */
+.structured-text ul {
+    padding-left: 1.5rem;
+    margin-bottom: 1.2rem;
+}
+
+.structured-text li {
+    margin-bottom: 0.8rem;
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+/* Section breaks */
+.structured-text hr {
+    margin: 1.5rem 0;
+    border-color: rgba(0,0,0,0.1);
+}
+
+/* Numbered sections */
+.structured-text ol {
+    counter-reset: section;
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.structured-text ol li {
+    counter-increment: section;
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+    position: relative;
+}
+
+.structured-text ol li::before {
+    content: counter(section) ".";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Enhanced Recommendation Styling */
+.recommendation-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.recommendation-text {
+    font-size: 1.1em;
+    line-height: 1.8;
+}
+
+.recommendation-item {
+    background: #f8f9fa;
+    border-left: 4px solid var(--primary-color);
+    margin-bottom: 1.2rem;
+    padding: 1rem 1.2rem;
+    border-radius: 0 8px 8px 0;
+    transition: transform 0.2s ease;
+}
+
+.recommendation-item:hover {
+    transform: translateX(5px);
+    background: #f0f2f5;
+}
+
+.recommendation-title {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.1em;
+}
+
+.recommendation-content {
+    color: var(--text-primary);
+}
+
+/* Numbered list styling */
+.recommendation-number {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+    margin-right: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+}
 </style>
 {% endblock %}
 
@@ -532,10 +650,19 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingContainer.classList.add('hidden');
             
             if (data.success) {
-                document.getElementById('findings').textContent = data.data.findings;
-                document.getElementById('diagnosis').textContent = data.data.diagnosis;
-                document.getElementById('recommendations').textContent = data.data.recommendations;
+                // Format the findings text
+                const formattedFindings = formatMedicalText(data.data.findings);
+                document.getElementById('findings').innerHTML = formattedFindings;
                 
+                // Format the diagnosis text
+                const formattedDiagnosis = formatMedicalText(data.data.diagnosis);
+                document.getElementById('diagnosis').innerHTML = formattedDiagnosis;
+                
+                // Format the recommendations
+                const formattedRecommendations = formatRecommendations(data.data.recommendations);
+                document.getElementById('recommendations').innerHTML = formattedRecommendations;
+                
+                // Update confidence score
                 const confidenceBar = document.getElementById('confidence-bar');
                 const confidenceScore = data.data.confidence_score;
                 confidenceBar.style.width = `${confidenceScore * 100}%`;
@@ -581,5 +708,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 });
+
+function formatMedicalText(text) {
+    // Split into sections
+    const sections = text.split(/(?=\d+\))/);
+    
+    // Format each section
+    const formattedSections = sections.map(section => {
+        // Clean up the section
+        section = section.trim();
+        
+        // Add bold to important terms
+        section = section.replace(/(calcifications|malignant|benign|cysts|fibroadenomas)/gi, 
+            '<strong>$1</strong>');
+        
+        // Format numbered points
+        section = section.replace(/(\d+\))/g, '<br><strong>$1</strong>');
+        
+        return `<p>${section}</p>`;
+    });
+    
+    return formattedSections.join('');
+}
+
+function formatRecommendations(text) {
+    // Split the text into individual recommendations
+    const recommendations = text.split(/(?=\d+\.\s)/).filter(item => item.trim());
+    
+    // Format each recommendation
+    const formattedHtml = recommendations.map((rec, index) => {
+        // Extract the title and content
+        const [title, ...content] = rec.split(':');
+        const titleText = title.replace(/^\d+\.\s*/, '').trim();
+        const contentText = content.join(':').trim();
+        
+        return `
+            <div class="recommendation-item">
+                <div class="recommendation-title">
+                    <span class="recommendation-number">${index + 1}</span>
+                    ${titleText}
+                </div>
+                <div class="recommendation-content">
+                    ${contentText}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    return formattedHtml;
+}
+
+// Update your existing JavaScript to use the new formatting
+function updateRecommendations(data) {
+    const recommendationsContainer = document.getElementById('recommendations');
+    if (recommendationsContainer && data.recommendations) {
+        recommendationsContainer.innerHTML = formatRecommendations(data.recommendations);
+    }
+}
+
+// Example of how the recommendations will be formatted:
+/*
+1. Regularly Monitor Your Breast Health
+   Always remain aware of any changes in how your breasts look and feel...
+
+2. Regular Mammograms
+   Arrange for regular mammograms as recommended by your doctor...
+
+3. Adopting a Healthy Lifestyle
+   Maintain a healthy lifestyle that includes a balanced diet...
+
+4. Awareness About Family Medical History
+   Be aware of your family history of breast cancer...
+*/
 </script>
 {% endblock %} 
