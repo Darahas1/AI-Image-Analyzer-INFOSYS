@@ -1,33 +1,50 @@
 # INFOSYS Image Analyzer
 
-A powerful Flask-based web application that leverages AI to analyze images, providing features like alt text generation, SEO descriptions, medical image analysis, and advanced color analysis.
+A powerful Flask-based web application that leverages AI to analyze images, providing features like alt text generation, SEO descriptions, social media content generation, medical image analysis, and advanced color analysis.
 
-## Features
+## Key Features
 
-- 🖼️ **Image Analysis**
-  - Alt text generation using BLIP model
-  - Context generation using GPT-3.5
-  - Enhanced descriptions using GPT-4
-  - Color analysis and distribution
-  - Sentiment analysis
+### 1. General Image Analysis
+- Real-time object detection and scene understanding
+- Detailed visual element descriptions
+- Advanced color analysis and pattern recognition
+- Automated alt text generation for accessibility
 
-- 🏥 **Medical Image Analysis**
-  - Detailed medical findings
-  - Diagnostic observations
-  - Professional recommendations
-  - Confidence scoring
+### 2. Advanced Image Analysis
+- Deep learning-powered visual analysis
+- Comprehensive color detection and palette generation
+- Enhanced AI descriptions with contextual understanding
+- Detailed sentiment analysis of image content
+- Pattern and texture recognition
+- Visual composition analysis, etc
 
-- 📱 **Social Media Tools**
-  - Caption generation
-  - Hashtag suggestions
-  - Engagement optimization
-  - Sentiment analysis
 
-- 🔍 **SEO Tools**
-  - SEO-optimized descriptions
-  - Product listing optimization
-  - Keyword extraction
-  - Technical specifications
+### 3. Medical Image Analysis
+- Support for DICOM, TIFF, PNG, JPEG formats
+- AI-assisted preliminary medical image interpretation
+- Detailed anatomical structure identification
+- **Important**: Not for diagnostic use - educational purposes only
+- Confidence scoring system for analysis reliability
+
+### 4. SEO Content Generator
+- AI-powered product descriptions
+- SEO-optimized title generation
+- Smart keyword extraction and analysis
+- Content optimization recommendations
+- Engagement metrics analysis
+
+### 5. Social Media Tools
+- Platform-specific caption generation
+- Trending hashtag suggestions
+- Engagement optimization strategies
+- Sentiment analysis and tone recommendations
+
+## Technical Requirements
+
+- Python 3.8+
+- 4GB RAM minimum (8GB recommended)
+- CUDA-compatible GPU (optional, for enhanced performance)
+- Internet connection for API services
 
 ## Project Structure
 
@@ -40,6 +57,7 @@ A powerful Flask-based web application that leverages AI to analyze images, prov
 │   │   ├── advanced_image_service.py  # Advanced image processing
 │   │   ├── image_service.py    # Basic image processing
 │   │   ├── seo_service.py      # SEO content generation
+│   │   ├── med_service.py      # Medical image analysis
 │   │   └── text_service.py     # Text processing and analysis
 │   └── utils/
 │       ├── file_utils.py       # File handling utilities
@@ -54,63 +72,65 @@ A powerful Flask-based web application that leverages AI to analyze images, prov
 └── run.py                   # Application entry point
 ```
 
-## Prerequisites
-
-- Python 3.8 or higher
-- pip (Python package installer)
-- Virtual environment (recommended)
-- OpenAI API key
-- Git (for cloning the repository)
-
-## Installation
-
-1. **Clone the Repository**
+1. **Environment Setup**
    ```bash
-   git clone <repository-url>
-   cd infosys-image-analyzer
-   ```
+   # Clone repository
+   git clone https://github.com/Darahas1/AI-Image-Analyzer-INFOSYS.git
 
-2. **Create and Activate Virtual Environment**
-   ```bash
-   # On Windows
+   # Create virtual environment
    python -m venv venv
-   venv\Scripts\activate
-
-   # On macOS/Linux
-   python3 -m venv venv
-   source venv/bin/activate
+   source venv/bin/activate  # Linux/Mac
+   venv\Scripts\activate     # Windows
    ```
 
-3. **Install Dependencies**
+2. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Set Up Environment Variables**
+3. **Configuration**
    ```bash
    # Create .env file
    cp example.env .env
    
-   # Edit .env file with your OpenAI API key
+   # Edit .env file with your API keys
    OPENAI_API_KEY=your-api-key-here
    ```
 
-5. **Initialize NLTK Data**
+4. **Initialize NLTK Data**
    ```python
    python -c "import nltk; nltk.download('vader_lexicon')"
    ```
 
-## Running the Application
-
-1. **Start the Flask Server**
+5. **Launch Application**
    ```bash
    python run.py
    ```
 
-2. **Access the Application**
-   - Open your web browser
-   - Navigate to `http://localhost:5000`
-   - The application will be running with all features available
+## Usage Guide
+
+### Web Interface
+- Access the application at `http://localhost:5000`
+- Navigate to specific tools using the top navigation menu
+- Upload images through drag-and-drop or file selection
+- View analysis results in real-time
+
+### API Integration
+```python
+import requests
+
+# Example: General Image Analysis
+response = requests.post(
+    'http://localhost:5000/api/analyze/general',
+    files={'image': open('image.jpg', 'rb')}
+)
+
+# Example: SEO Content Generation
+response = requests.post(
+    'http://localhost:5000/api/seo',
+    files={'image': open('product.jpg', 'rb')}
+)
+```
 
 ## Available Routes
 
@@ -122,84 +142,84 @@ A powerful Flask-based web application that leverages AI to analyze images, prov
 - `/seo` - SEO optimization tools
 - `/general` - General image analysis
 
+## Security Considerations
+
+1. **API Key Protection**
+   - Never commit API keys to version control
+   - Use environment variables for sensitive data
+   - Rotate API keys periodically
+
+2. **File Upload Security**
+   - File type validation
+   - Size limitations
+   - Secure file handling
+
+3. **Data Privacy**
+   - No medical images are stored
+   - Temporary file cleanup
+   - Secure data transmission
+
+## Error Handling
+
+Common error scenarios and solutions:
+
+1. **Installation Issues**
+   - Verify Python version compatibility
+   - Check virtual environment activation
+   - Confirm all dependencies are installed
+
+2. **Runtime Errors**
+   - Validate API key configuration
+   - Check NLTK data installation
+   - Verify file permissions
+
+3. **Processing Errors**
+   - Confirm supported image formats
+   - Check file size limits
+   - Ensure stable internet connection
+
 ## Development Guidelines
 
 1. **Code Style**
    - Follow PEP 8 guidelines
    - Use descriptive variable names
-   - Add docstrings to functions and classes
+   - Include docstrings for functions and classes
 
-2. **Error Handling**
-   - Implement proper try-except blocks
-   - Return meaningful error messages
-   - Log errors appropriately
-
-3. **Testing**
-   - Write unit tests for new features
-   - Test edge cases
-   - Ensure proper error handling
-
-## Troubleshooting
-
-1. **Installation Issues**
-   - Ensure Python 3.8+ is installed
-   - Check virtual environment activation
-   - Verify all dependencies are installed
-
-2. **Runtime Errors**
-   - Check OpenAI API key configuration
-   - Verify NLTK data installation
-   - Ensure proper file permissions
-
-3. **Image Processing Issues**
-   - Verify supported image formats
-   - Check image file size limits
-   - Ensure proper file uploads directory permissions
-
-## Security Considerations
-
-1. **API Keys**
-   - Never commit API keys to version control
-   - Use environment variables for sensitive data
-   - Rotate API keys periodically
-
-2. **File Uploads**
-   - Validate file types
-   - Limit file sizes
-   - Sanitize file names
-
-3. **User Input**
-   - Validate all user inputs
-   - Sanitize data before processing
-   - Implement proper error handling
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
+2. **Testing**
    ```bash
-   git checkout -b feature/your-feature-name
+   # Run all tests
+   pytest
+
+   # Run specific test category
+   pytest tests/test_image_analysis.py
    ```
-3. Commit your changes
-   ```bash
-   git commit -m "Add your feature description"
-   ```
-4. Push to your fork
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-5. Create a Pull Request
+
+3. **Contributing**
+   - Fork the repository
+   - Create feature branch
+   - Submit pull request with tests
+   - Follow code review process
+
+## Performance Optimization
+
+- GPU acceleration when available
+- Caching for frequent requests
+- Optimized image processing
+- Efficient API usage
+
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- [BLIP](https://github.com/salesforce/BLIP) for image captioning
-- [OpenAI](https://openai.com/) for GPT models
-- [NLTK](https://www.nltk.org/) for sentiment analysis
-- [Flask](https://flask.palletsprojects.com/) for web framework
-- [Plotly](https://plotly.com/) for data visualization
+- [BLIP](https://github.com/salesforce/BLIP) - Image captioning
+- [OpenAI](https://openai.com/) - GPT models
+- [NLTK](https://www.nltk.org/) - Text processing
+- [Flask](https://flask.palletsprojects.com/) - Web framework
+- [PyTorch](https://pytorch.org/) - Machine learning
+- [Facebook DETR](https://github.com/facebookresearch/detr) - Object detection
+
 
 
