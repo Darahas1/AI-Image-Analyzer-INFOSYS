@@ -4,6 +4,13 @@ from transformers import BlipProcessor, BlipForConditionalGeneration, DetrImageP
 import torch
 from config.config import BLIP_MODEL
 from collections import Counter
+import warnings
+
+# Suppress warnings about unused weights
+warnings.filterwarnings(
+    "ignore", 
+    message="Some weights of the model checkpoint.*were not used"
+)
 
 class ImageProcessor:
     def __init__(self):
