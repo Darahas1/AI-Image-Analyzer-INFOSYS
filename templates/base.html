@@ -364,15 +364,6 @@
             }, 3000);
         }
 
-        // Copy to Clipboard Helper
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied to clipboard!', 'success');
-            }).catch(() => {
-                showToast('Failed to copy text', 'error');
-            });
-        }
-
         // Form Validation Helper
         function validateForm(form) {
             const requiredFields = form.querySelectorAll('[required]');
