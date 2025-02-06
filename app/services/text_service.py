@@ -1,5 +1,4 @@
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import httpx
 from config.ai_config import get_openai_client, format_success_response, format_error_response, GPT_CONFIG
 import logging
 import re
@@ -18,7 +17,7 @@ def generate_context(alt_text):
     """
     try:
         # Clean the alt text first
-        cleaned_alt_text = clean_repetitive_text(alt_text)
+        cleaned_alt_text = clean_text(alt_text)
         
         client = get_openai_client()
         prompt = f"""
@@ -31,10 +30,10 @@ def generate_context(alt_text):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are an expert at creating clear, concise image descriptions without repetition."},
+                {"role": "system", "content": "You are an expert at creating clear, enhanced image descriptions without repetition."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=150,
+            max_tokens=200,
             temperature=0.7
         )
 
@@ -83,22 +82,24 @@ Requirements:
             error_code="CONTEXT_ENHANCEMENT_ERROR"
         )
 
-def clean_repetitive_text(text):
-    """Clean text by removing excessive repetitions"""
+def clean_text(text, remove_duplicates=True, remove_repetitive_chars=True):
+    """Unified text cleaning function"""
     if not text:
         return text
         
-    # Split text into words
+    # Split into words
     words = text.split()
     
-    # Remove consecutive duplicate words, keeping only one instance
-    cleaned_words = [next(group) for key, group in groupby(words)]
+    if remove_duplicates:
+        # Remove consecutive duplicate words
+        words = [next(group) for key, group in groupby(words)]
     
     # Join words back together
-    cleaned_text = ' '.join(cleaned_words)
+    cleaned_text = ' '.join(words)
     
-    # Remove repetitive characters within words (e.g., 'mmmmmm' -> 'm')
-    cleaned_text = re.sub(r'(.)\1+', r'\1', cleaned_text)
+    if remove_repetitive_chars:
+        # Remove repetitive characters within words
+        cleaned_text = re.sub(r'(.)\1+', r'\1', cleaned_text)
     
     return cleaned_text
 
@@ -127,7 +128,7 @@ def social_media_caption(context):
 
         caption = response.choices[0].message.content.strip()
         # Clean any potential repetitions
-        caption = clean_repetitive_text(caption)
+        caption = clean_text(caption)
         return format_success_response({'caption': caption})
 
     except Exception as e:
