@@ -5,8 +5,6 @@ import tempfile
 from PIL import Image
 from gtts import gTTS
 from datetime import datetime
-import requests
-import time
 import logging
 
 from app.utils.file_utils import allowed_file, validate_image
@@ -15,10 +13,7 @@ from app.services.text_service import (
     generate_context,
     enhance_context,
     social_media_caption,
-    analyze_sentiment,
-    analyze_medical_image,
     generate_hashtags,
-    clean_repetitive_text
 )
 from app.services.advanced_image_service import AdvancedImageProcessor
 from app.services.seo_service import generate_seo_description
@@ -155,15 +150,27 @@ def seo():
             file.save(filepath)
             
             try:
+                # Process the image
                 image = Image.open(filepath)
                 alt_text = image_processor.generate_alt_text(image)
-                context = generate_context(alt_text)
-                seo_description = generate_seo_description(context, alt_text)
                 
-                return jsonify(seo_description)
+                # Generate initial context
+                context_result = generate_context(alt_text)
+                if not context_result['success']:
+                    raise ValueError(context_result['error'])
+                
+                # Generate SEO content
+                seo_result = generate_seo_description(context_result['data']['context'], alt_text)
+                if not seo_result['success']:
+                    raise ValueError(seo_result['error'])
+                
+                return jsonify({
+                    'success': True,
+                    'data': seo_result['data']
+                })
                 
             except Exception as e:
-                print(f"Error processing image: {str(e)}")
+                logger.error(f"Error processing image: {str(e)}")
                 return jsonify({
                     'success': False,
                     'error': 'Error processing image. Please try again.',
@@ -176,10 +183,10 @@ def seo():
                     if os.path.exists(filepath):
                         os.remove(filepath)
                 except Exception as e:
-                    print(f"Error removing file: {str(e)}")
+                    logger.error(f"Error removing file: {str(e)}")
         
         except Exception as e:
-            print(f"Server error: {str(e)}")
+            logger.error(f"Server error: {str(e)}")
             return jsonify({
                 'success': False,
                 'error': 'An unexpected error occurred. Please try again.',
